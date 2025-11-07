@@ -3,7 +3,7 @@ import numpy as np
 import math
 import cv2
 
-height=int(1080/75)
+height=int(1140/75)
 width=int(1920/75)
 
 def angle_lerp(current, target):
@@ -38,6 +38,8 @@ class Herbivorous():
         self.death_reason=None
         self.Team=Team
 
+        self.nb_repro=0
+
         self.proba_survie=np.arange(0,0.95,(0.95/21))[self.protect]
         self.lifespan_repro=lifespan_repro
         self.lifespan=7.5+20*(lifespan_repro)#How much secodn does the annimal live
@@ -53,10 +55,12 @@ class Herbivorous():
         # between 1 and 20
         self.dist_detection=self.eye/4# threshold dist
         self.intelect_or=intelect
-        self.intelect=self.intelect_or*0.75# dirige vers gross bouffe
+        self.intelect=self.intelect_or*0.25# dirige vers gross bouffe
         self.speed_or=speed
         self.speed=np.arange(0,5,(5-1)/21)[self.speed_or]#how fast they move
         self.cur_speed = self.speed
+
+        self.amount_eaten=0
 
         self.maturation=0.25#Prop age
         if self.mandi>0:
@@ -227,7 +231,7 @@ class Herbivorous():
                             self.angle+=random.gauss(0, (0.1))
 
 
-                if self.type=="C" and not self.eating_time>=dt and not self.ressources>0.75:
+                if self.type=="C" and not self.eating_time>=dt:
                     catched = False
                     #Does it catch a prey?
                     sub_grid = self.grid_prey[max(0, round(self.pos_Y) - 1):min(
@@ -236,25 +240,27 @@ class Herbivorous():
                                    round(self.pos_X) + 1 + 1, int(self.limits[0]))]
 
                     possible_prey=[]
-                    for i in range(len(sub_grid)):
-                        for j in range(len(sub_grid[i])):
-                            possible_prey+=[ (h.size, h) for h in sub_grid[i,j] if h.alive==1 and  h.Team!=self.Team and math.sqrt(math.pow(h.pos_X-self.pos_X,2)+math.pow(h.pos_Y-self.pos_Y,2))<(0.15)]
+                    if not self.ressources > 0.75:
+                        for i in range(len(sub_grid)):
+                            for j in range(len(sub_grid[i])):
+                                possible_prey+=[ (h.size, h) for h in sub_grid[i,j] if h.alive==1 and  h.Team!=self.Team and math.sqrt(math.pow(h.pos_X-self.pos_X,2)+math.pow(h.pos_Y-self.pos_Y,2))<(0.15)]
 
-                    if len(possible_prey)>0:
-                        next_prey = max(possible_prey, key=lambda x: x[0])
+                        if len(possible_prey)>0:
+                            next_prey = max(possible_prey, key=lambda x: x[0])
 
-                        Pcatch_size=0.5-((self.size-next_prey[1].size)/20)/2
-                        print(Pcatch_size)
+                            Pcatch_size=0.5-((self.size-next_prey[1].size)/20)/2
+                            print(Pcatch_size)
 
-                        if random.random() > next_prey[1].proba_survie and random.random()>Pcatch_size:
-                            self.state=0
-                            self.eating_time=5-((self.ressources_comsumption))
-                            self.ressources=min(self.ressources+0.3+0.01*next_prey[0], self.ressources_max)
-                            next_prey[1].die("Eaten by "+ self.Team+"'s")
-                            catched=True
-                        else:
-                            self.eating_time=1.5
-                            self.state=0
+                            if random.random() > next_prey[1].proba_survie and random.random()>Pcatch_size:
+                                self.state=0
+                                self.eating_time=5-((self.ressources_comsumption))
+                                self.ressources=min(self.ressources+0.3+0.01*next_prey[0], self.ressources_max)
+                                next_prey[1].die("Eaten by "+ self.Team+"'s")
+                                self.amount_eaten+=1
+                                catched=True
+                            else:
+                                self.eating_time=1.5
+                                self.state=0
 
                     if not catched:
                         if random.random() < self.intelect:
@@ -312,6 +318,8 @@ class Herbivorous():
 
         self.ressources-=self.ressources_max/4
 
+        self.nb_repro+=1
+
         return(child)
 
     def die(self, cause):
@@ -326,10 +334,18 @@ class Herbivorous():
 
     def eat_grass(self, grid, dt):
         if grid[round(self.pos_Y), round(self.pos_X)]>self.ressources_comsumption * 255 * dt:
-            self.ressources = min(self.ressources_intake * self.ressources_comsumption * dt + self.ressources,
-                                  self.ressources_max)
+            if (self.ressources_intake * self.ressources_comsumption * dt + self.ressources)>self.ressources_max:
+                self.ressources = self.ressources_max
+                self.amount_eaten += ((self.ressources_intake * self.ressources_comsumption * dt + self.ressources)-self.ressources_max)
+
+            else:
+                self.ressources = self.ressources_intake * self.ressources_comsumption * dt + self.ressources
+                self.amount_eaten += self.ressources_intake * self.ressources_comsumption * dt
+
             grid[round(self.pos_Y), round(self.pos_X)] = max(0, int(grid[round(self.pos_Y), round(self.pos_X)]) - (
                         self.ressources_comsumption * 255 * dt))
+
+
 
     def move_forward(self, dt):
         if self.state:

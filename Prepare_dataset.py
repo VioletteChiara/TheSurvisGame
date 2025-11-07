@@ -23,7 +23,7 @@ all_colors = [
 
 ]
 
-def prepare_dataset(points, previous_data=None):
+def prepare_dataset(points, previous_data=None, width=500):
     # create root window
     root = Tk()
     all_teams = []
@@ -37,9 +37,22 @@ def prepare_dataset(points, previous_data=None):
     root.columnconfigure(0, weight=1)
     root.columnconfigure(1, weight=1)
 
-    Frame_teams=Frame(root)
-    Frame_teams.grid(row=1, column=0, columnspan=2, sticky="nsew")
-    Frame_teams.rowconfigure(0, weight=1)
+    canvas = Canvas(root, width=width, height=450)
+    scroll_x = Scrollbar(root, orient="horizontal", command=canvas.xview)
+    canvas.configure(xscrollcommand=scroll_x.set)
+
+    Frame_teams=Frame(canvas)
+    canvas.create_window((0, 0), window=Frame_teams, anchor="nw")
+    # Layout
+    canvas.grid(row=1,column=0,columnspan=2,sticky="nsew")
+    scroll_x.grid(row=2,column=0,columnspan=2,sticky="nsew")
+
+    # Update scroll region when the Frame_teams changes size
+    Frame_teams.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+
+    #Frame_teams.grid(row=1, column=0, columnspan=2, sticky="nsew")
+    #Frame_teams.rowconfigure(0, weight=1)
 
 
     def add_team(name=None,team=None):
@@ -86,13 +99,19 @@ def prepare_dataset(points, previous_data=None):
         B1 = Button(root, text="Add team", command=add_team).grid(row=0, column=0, sticky="nsew")
         B2 = Button(root, text="Remove team", command=del_team).grid(row=0, column=1, sticky="nsew")
 
-    B3 = Button(root, text="Validate and build game!", command=lambda: begin_game(root)).grid(row=2, column=0,
+    duration=IntVar()
+    duration.set(90)
+    S1 = Scale(root, label="Duration of the round (sec)", orient=HORIZONTAL, from_=10,to=600, variable=duration).grid(row=3, column=0,
+                                                                                                   columnspan=2,
+                                                                                                   sticky="nsew")
+
+    B3 = Button(root, text="Validate and build game!", command=lambda: begin_game(root)).grid(row=23, column=0,
                                                                                                    columnspan=2,
                                                                                                    sticky="nsew")
 
     root.mainloop()
 
-    return(final_dict)
+    return(final_dict, duration.get())
 
 
 
