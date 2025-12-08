@@ -32,7 +32,7 @@ The Survis Game can be used to illustrate several key biological concepts:
 ## 🚀 Installation & Launch
 Download the latest release from the Releases section.
 Unzip the downloaded folder.
-Run the executable: "TheSurvisGame.exe"
+Run the executable: "TheSurvis.exe"
 
 Note: The game is currently available for Windows only.
 
