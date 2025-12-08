@@ -36,6 +36,6 @@ Run the executable: "TheSurvis.exe"
 
 Note: The game is currently available for Windows only.
 
-📬 Contact
+## 📬 Contact
 
 If you have questions, feedback, or suggestions, feel free to open an issue or reach out directly.
